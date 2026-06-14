@@ -10,7 +10,9 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as VerticalsRouteImport } from './routes/verticals'
+import { Route as UsuariosRouteImport } from './routes/usuarios'
 import { Route as PipelineRouteImport } from './routes/pipeline'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as ImportExportRouteImport } from './routes/import-export'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -19,9 +21,19 @@ const VerticalsRoute = VerticalsRouteImport.update({
   path: '/verticals',
   getParentRoute: () => rootRouteImport,
 } as any)
+const UsuariosRoute = UsuariosRouteImport.update({
+  id: '/usuarios',
+  path: '/usuarios',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PipelineRoute = PipelineRouteImport.update({
   id: '/pipeline',
   path: '/pipeline',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ImportExportRoute = ImportExportRouteImport.update({
@@ -38,34 +50,61 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/import-export': typeof ImportExportRoute
+  '/login': typeof LoginRoute
   '/pipeline': typeof PipelineRoute
+  '/usuarios': typeof UsuariosRoute
   '/verticals': typeof VerticalsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/import-export': typeof ImportExportRoute
+  '/login': typeof LoginRoute
   '/pipeline': typeof PipelineRoute
+  '/usuarios': typeof UsuariosRoute
   '/verticals': typeof VerticalsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/import-export': typeof ImportExportRoute
+  '/login': typeof LoginRoute
   '/pipeline': typeof PipelineRoute
+  '/usuarios': typeof UsuariosRoute
   '/verticals': typeof VerticalsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/import-export' | '/pipeline' | '/verticals'
+  fullPaths:
+    | '/'
+    | '/import-export'
+    | '/login'
+    | '/pipeline'
+    | '/usuarios'
+    | '/verticals'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/import-export' | '/pipeline' | '/verticals'
-  id: '__root__' | '/' | '/import-export' | '/pipeline' | '/verticals'
+  to:
+    | '/'
+    | '/import-export'
+    | '/login'
+    | '/pipeline'
+    | '/usuarios'
+    | '/verticals'
+  id:
+    | '__root__'
+    | '/'
+    | '/import-export'
+    | '/login'
+    | '/pipeline'
+    | '/usuarios'
+    | '/verticals'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ImportExportRoute: typeof ImportExportRoute
+  LoginRoute: typeof LoginRoute
   PipelineRoute: typeof PipelineRoute
+  UsuariosRoute: typeof UsuariosRoute
   VerticalsRoute: typeof VerticalsRoute
 }
 
@@ -78,11 +117,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof VerticalsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/usuarios': {
+      id: '/usuarios'
+      path: '/usuarios'
+      fullPath: '/usuarios'
+      preLoaderRoute: typeof UsuariosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pipeline': {
       id: '/pipeline'
       path: '/pipeline'
       fullPath: '/pipeline'
       preLoaderRoute: typeof PipelineRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/import-export': {
@@ -105,9 +158,21 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ImportExportRoute: ImportExportRoute,
+  LoginRoute: LoginRoute,
   PipelineRoute: PipelineRoute,
+  UsuariosRoute: UsuariosRoute,
   VerticalsRoute: VerticalsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

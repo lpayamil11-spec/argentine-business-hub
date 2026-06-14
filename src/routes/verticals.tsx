@@ -34,6 +34,7 @@ import {
 import { GripVertical, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Vertical } from "@/lib/types";
+import { useAuth } from "@/store/useAuth";
 
 export const Route = createFileRoute("/verticals")({
   head: () => ({
@@ -54,6 +55,7 @@ function VerticalsPage() {
   const leads = useCrmStore((s) => s.leads);
   const addVertical = useCrmStore((s) => s.addVertical);
   const reorder = useCrmStore((s) => s.reorderVerticals);
+  const isAdmin = useAuth((s) => s.user?.role === "admin");
 
   const [newV, setNewV] = useState({ name: "", icon: "🏷️", color: "#b4a0ff" });
 
@@ -79,29 +81,35 @@ function VerticalsPage() {
     <div className="space-y-6 max-w-3xl mx-auto">
       <div>
         <h1 className="text-2xl font-bold">Verticales</h1>
-        <p className="text-sm text-muted-foreground">Categorías de negocios. Arrastrá para reordenar.</p>
+        <p className="text-sm text-muted-foreground">
+          {isAdmin
+            ? "Categorías de negocios. Arrastrá para reordenar."
+            : "Categorías de negocios (solo lectura)."}
+        </p>
       </div>
 
-      <Card>
-        <CardHeader className="pb-3"><CardTitle className="text-base">Agregar vertical</CardTitle></CardHeader>
-        <CardContent>
-          <div className="grid gap-3 sm:grid-cols-[1fr,80px,80px,auto] items-end">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Nombre</Label>
-              <Input value={newV.name} onChange={(e) => setNewV((p) => ({ ...p, name: e.target.value }))} placeholder="Ej. Peluquerías" />
+      {isAdmin && (
+        <Card>
+          <CardHeader className="pb-3"><CardTitle className="text-base">Agregar vertical</CardTitle></CardHeader>
+          <CardContent>
+            <div className="grid gap-3 sm:grid-cols-[1fr,80px,80px,auto] items-end">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Nombre</Label>
+                <Input value={newV.name} onChange={(e) => setNewV((p) => ({ ...p, name: e.target.value }))} placeholder="Ej. Peluquerías" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Ícono</Label>
+                <Input value={newV.icon} onChange={(e) => setNewV((p) => ({ ...p, icon: e.target.value }))} maxLength={2} className="text-center text-lg" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Color</Label>
+                <Input type="color" value={newV.color} onChange={(e) => setNewV((p) => ({ ...p, color: e.target.value }))} className="h-9 p-1 cursor-pointer" />
+              </div>
+              <Button onClick={create}><Plus className="h-4 w-4" /> Agregar</Button>
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Ícono</Label>
-              <Input value={newV.icon} onChange={(e) => setNewV((p) => ({ ...p, icon: e.target.value }))} maxLength={2} className="text-center text-lg" />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Color</Label>
-              <Input type="color" value={newV.color} onChange={(e) => setNewV((p) => ({ ...p, color: e.target.value }))} className="h-9 p-1 cursor-pointer" />
-            </div>
-            <Button onClick={create}><Plus className="h-4 w-4" /> Agregar</Button>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
         <SortableContext items={verticals.map((v) => v.id)} strategy={verticalListSortingStrategy}>
@@ -111,6 +119,7 @@ function VerticalsPage() {
                 key={v.id}
                 vertical={v}
                 leadCount={leads.filter((l) => l.verticalId === v.id).length}
+                isAdmin={isAdmin}
               />
             ))}
           </div>
@@ -120,10 +129,13 @@ function VerticalsPage() {
   );
 }
 
-function VerticalRow({ vertical, leadCount }: { vertical: Vertical; leadCount: number }) {
+function VerticalRow({ vertical, leadCount, isAdmin }: { vertical: Vertical; leadCount: number; isAdmin: boolean }) {
   const updateVertical = useCrmStore((s) => s.updateVertical);
   const deleteVertical = useCrmStore((s) => s.deleteVertical);
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: vertical.id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: vertical.id,
+    disabled: !isAdmin,
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -133,27 +145,33 @@ function VerticalRow({ vertical, leadCount }: { vertical: Vertical; leadCount: n
 
   return (
     <div ref={setNodeRef} style={style} className="flex items-center gap-3 p-3 rounded-lg border bg-card">
-      <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground">
-        <GripVertical className="h-4 w-4" />
-      </button>
+      {isAdmin && (
+        <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground">
+          <GripVertical className="h-4 w-4" />
+        </button>
+      )}
       <Input
         value={vertical.icon}
         onChange={(e) => updateVertical(vertical.id, { icon: e.target.value })}
         maxLength={2}
+        disabled={!isAdmin}
         className="w-12 text-center text-lg"
       />
       <Input
         value={vertical.name}
         onChange={(e) => updateVertical(vertical.id, { name: e.target.value })}
+        disabled={!isAdmin}
         className="flex-1"
       />
       <Input
         type="color"
         value={vertical.color}
         onChange={(e) => updateVertical(vertical.id, { color: e.target.value })}
+        disabled={!isAdmin}
         className="w-14 h-9 p-1 cursor-pointer"
       />
       <span className="text-xs text-muted-foreground tabular-nums w-16 text-right">{leadCount} leads</span>
+      {isAdmin && (
       <AlertDialog>
         <AlertDialogTrigger asChild>
           <Button variant="ghost" size="icon" className="text-destructive">
@@ -179,6 +197,7 @@ function VerticalRow({ vertical, leadCount }: { vertical: Vertical; leadCount: n
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      )}
     </div>
   );
 }
