@@ -9,8 +9,26 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VerticalsRouteImport } from './routes/verticals'
+import { Route as PipelineRouteImport } from './routes/pipeline'
+import { Route as ImportExportRouteImport } from './routes/import-export'
 import { Route as IndexRouteImport } from './routes/index'
 
+const VerticalsRoute = VerticalsRouteImport.update({
+  id: '/verticals',
+  path: '/verticals',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PipelineRoute = PipelineRouteImport.update({
+  id: '/pipeline',
+  path: '/pipeline',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ImportExportRoute = ImportExportRouteImport.update({
+  id: '/import-export',
+  path: '/import-export',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -19,28 +37,61 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/import-export': typeof ImportExportRoute
+  '/pipeline': typeof PipelineRoute
+  '/verticals': typeof VerticalsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/import-export': typeof ImportExportRoute
+  '/pipeline': typeof PipelineRoute
+  '/verticals': typeof VerticalsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/import-export': typeof ImportExportRoute
+  '/pipeline': typeof PipelineRoute
+  '/verticals': typeof VerticalsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/import-export' | '/pipeline' | '/verticals'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/import-export' | '/pipeline' | '/verticals'
+  id: '__root__' | '/' | '/import-export' | '/pipeline' | '/verticals'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ImportExportRoute: typeof ImportExportRoute
+  PipelineRoute: typeof PipelineRoute
+  VerticalsRoute: typeof VerticalsRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/verticals': {
+      id: '/verticals'
+      path: '/verticals'
+      fullPath: '/verticals'
+      preLoaderRoute: typeof VerticalsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pipeline': {
+      id: '/pipeline'
+      path: '/pipeline'
+      fullPath: '/pipeline'
+      preLoaderRoute: typeof PipelineRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/import-export': {
+      id: '/import-export'
+      path: '/import-export'
+      fullPath: '/import-export'
+      preLoaderRoute: typeof ImportExportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -53,17 +104,10 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ImportExportRoute: ImportExportRoute,
+  PipelineRoute: PipelineRoute,
+  VerticalsRoute: VerticalsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

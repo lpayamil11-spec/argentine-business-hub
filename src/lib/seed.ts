@@ -1,0 +1,115 @@
+import type { Interaction, Lead, Vertical } from "./types";
+
+const now = new Date().toISOString();
+const daysFromNow = (n: number) => {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  return d.toISOString();
+};
+
+export const seedVerticals: Vertical[] = [
+  { id: "v1", name: "Lavanderías", icon: "🧺", color: "#60a5fa", order: 0, createdAt: now },
+  { id: "v2", name: "Pollerías", icon: "🍗", color: "#f59e0b", order: 1, createdAt: now },
+  { id: "v3", name: "Cafeterías", icon: "☕", color: "#a78bfa", order: 2, createdAt: now },
+];
+
+export const seedLeads: Lead[] = [
+  {
+    id: "l1",
+    verticalId: "v1",
+    businessName: "Lavandería Express Palermo",
+    ownerName: "Martín García",
+    phone: "+5491145678901",
+    email: "martin@expresspalermo.com",
+    address: "Av. Santa Fe 3200",
+    city: "Buenos Aires",
+    website: "",
+    instagramHandle: "@expresspalermo",
+    estimatedTicketUSD: 1200,
+    status: "contactado",
+    notes: "Interesado en sitio web + sistema de turnos online.",
+    nextActionDate: daysFromNow(0),
+    nextActionDescription: "Llamar para coordinar demo",
+    createdAt: now,
+    updatedAt: now,
+  },
+  {
+    id: "l2",
+    verticalId: "v2",
+    businessName: "Pollería Don Pepe",
+    ownerName: "José Fernández",
+    phone: "+5491156789012",
+    email: "donpepe@gmail.com",
+    address: "Belgrano 145",
+    city: "Rosario",
+    estimatedTicketUSD: 900,
+    status: "prospecto",
+    notes: "Negocio familiar, 2 sucursales.",
+    nextActionDate: daysFromNow(-1),
+    nextActionDescription: "Primer contacto por WhatsApp",
+    createdAt: now,
+    updatedAt: now,
+  },
+  {
+    id: "l3",
+    verticalId: "v3",
+    businessName: "Café Bernal",
+    ownerName: "Lucía Romero",
+    phone: "+5491167890123",
+    email: "lucia@cafebernal.com.ar",
+    address: "Belgrano 567",
+    city: "Quilmes",
+    website: "cafebernal.com.ar",
+    instagramHandle: "@cafebernal",
+    estimatedTicketUSD: 1800,
+    status: "demo",
+    notes: "Quiere CRM + chatbot para reservas.",
+    nextActionDate: daysFromNow(2),
+    nextActionDescription: "Enviar propuesta formal",
+    createdAt: now,
+    updatedAt: now,
+  },
+  {
+    id: "l4",
+    verticalId: "v3",
+    businessName: "Tostado Café de Especialidad",
+    ownerName: "Andrés Pérez",
+    phone: "+5491178901234",
+    email: "andres@tostadocafe.com",
+    address: "Honduras 4900",
+    city: "Buenos Aires",
+    estimatedTicketUSD: 2500,
+    status: "propuesta",
+    notes: "Propuesta enviada el lunes. Esperando respuesta.",
+    nextActionDate: daysFromNow(3),
+    nextActionDescription: "Seguimiento de propuesta",
+    createdAt: now,
+    updatedAt: now,
+  },
+  {
+    id: "l5",
+    verticalId: "v1",
+    businessName: "Lavadero Aqua",
+    ownerName: "Roberto Sosa",
+    phone: "+5491189012345",
+    email: "info@aqualavadero.com",
+    address: "Mitre 234",
+    city: "Córdoba",
+    estimatedTicketUSD: 800,
+    status: "cerrado",
+    notes: "Cerrado! Sitio web + panel admin. Iniciamos esta semana.",
+    nextActionDate: daysFromNow(7),
+    nextActionDescription: "Kickoff del proyecto",
+    createdAt: now,
+    updatedAt: now,
+  },
+];
+
+export const seedInteractions: Interaction[] = [
+  { id: "i1", leadId: "l1", date: daysFromNow(-2), type: "whatsapp", notes: "Primer mensaje. Mostró interés." },
+  { id: "i2", leadId: "l1", date: daysFromNow(-1), type: "call", notes: "Llamada de 15min. Coordinamos demo." },
+  { id: "i3", leadId: "l3", date: daysFromNow(-5), type: "visit", notes: "Visita presencial al local." },
+  { id: "i4", leadId: "l3", date: daysFromNow(-1), type: "demo", notes: "Demo del CRM + chatbot. Muy entusiasmada." },
+  { id: "i5", leadId: "l4", date: daysFromNow(-3), type: "email", notes: "Envío de propuesta formal con 3 planes." },
+  { id: "i6", leadId: "l5", date: daysFromNow(-7), type: "demo", notes: "Demo completa. Decisión positiva." },
+];
