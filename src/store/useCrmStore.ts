@@ -65,9 +65,11 @@ interface CrmState {
 export const useCrmStore = create<CrmState>()(
   persist(
     (set, get) => ({
-      verticals: seedVerticals,
-      leads: seedLeads,
-      interactions: seedInteractions,
+      // En modo remoto el estado inicial es vacío (la API es la fuente de verdad):
+      // evita el "flash" de datos demo antes de que hydrate() traiga lo real.
+      verticals: USE_REMOTE ? [] : seedVerticals,
+      leads: USE_REMOTE ? [] : seedLeads,
+      interactions: USE_REMOTE ? [] : seedInteractions,
 
       hydrated: false,
       hydrate: async () => {
