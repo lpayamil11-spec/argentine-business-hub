@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { KanbanBoard } from "@/components/pipeline/KanbanBoard";
 import { VerticalFilterTabs } from "@/components/pipeline/VerticalFilterTabs";
 
@@ -15,6 +15,8 @@ export const Route = createFileRoute("/pipeline")({
 
 function PipelinePage() {
   const [vertical, setVertical] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   return (
     <div className="space-y-4">
@@ -23,7 +25,7 @@ function PipelinePage() {
         <p className="text-sm text-muted-foreground">Arrastrá las tarjetas para cambiar de estado</p>
       </div>
       <VerticalFilterTabs value={vertical} onChange={setVertical} />
-      <KanbanBoard filterVerticalId={vertical} />
+      {mounted && <KanbanBoard filterVerticalId={vertical} />}
     </div>
   );
 }
