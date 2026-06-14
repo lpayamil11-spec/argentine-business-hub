@@ -1,6 +1,14 @@
 export const formatUSD = (n: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n || 0);
 
+// Convierte el valor de un <input type="date"> ("YYYY-MM-DD") a ISO interpretándolo
+// en hora LOCAL. Evita el corrimiento de un día: new Date("2026-06-12") parsea como
+// medianoche UTC y al mostrarse en AR (UTC-3) retrocede al día anterior.
+export const dateInputToISO = (value: string): string => {
+  const [y, m, d] = value.split("-").map(Number);
+  return new Date(y, m - 1, d).toISOString();
+};
+
 export const formatDate = (iso: string | null | undefined) => {
   if (!iso) return "—";
   const d = new Date(iso);

@@ -36,7 +36,7 @@ import {
   type InteractionType,
   type LeadStatus,
 } from "@/lib/types";
-import { formatDateTime, waLink } from "@/lib/format";
+import { dateInputToISO, formatDateTime, waLink } from "@/lib/format";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { VerticalBadge } from "@/components/common/VerticalBadge";
 import { MessageCircle, Phone, Copy, Trash2, Plus } from "lucide-react";
@@ -86,7 +86,7 @@ export function LeadDrawer({ leadId, onClose }: Props) {
     addInteraction({
       leadId: lead.id,
       type: newInt.type,
-      date: new Date(newInt.date).toISOString(),
+      date: dateInputToISO(newInt.date),
       notes: newInt.notes,
     });
     setNewInt({ type: "call", date: new Date().toISOString().slice(0, 10), notes: "" });
@@ -198,7 +198,7 @@ export function LeadDrawer({ leadId, onClose }: Props) {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Próxima acción (fecha)">
-              <Input type="date" value={lead.nextActionDate ? lead.nextActionDate.slice(0, 10) : ""} onChange={(e) => onField("nextActionDate", e.target.value ? new Date(e.target.value).toISOString() : null)} />
+              <Input type="date" value={lead.nextActionDate ? lead.nextActionDate.slice(0, 10) : ""} onChange={(e) => onField("nextActionDate", e.target.value ? dateInputToISO(e.target.value) : null)} />
             </Field>
             <Field label="Próxima acción (descripción)">
               <Input value={lead.nextActionDescription} onChange={(e) => onField("nextActionDescription", e.target.value)} />

@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { useCrmStore } from "@/store/useCrmStore";
 import { LEAD_STATUSES, STATUS_LABELS, type LeadStatus } from "@/lib/types";
+import { dateInputToISO } from "@/lib/format";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 
@@ -75,7 +76,7 @@ export function AddLeadDialog({ trigger, defaultStatus = "prospecto" }: Props) {
       estimatedTicketUSD: Number(form.estimatedTicketUSD) || 0,
       status: form.status as LeadStatus,
       notes: form.notes,
-      nextActionDate: form.nextActionDate || null,
+      nextActionDate: form.nextActionDate ? dateInputToISO(form.nextActionDate) : null,
       nextActionDescription: form.nextActionDescription,
     });
     toast.success("Lead agregado");
