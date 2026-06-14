@@ -50,8 +50,16 @@ interface Props {
 export function LeadDrawer({ leadId, onClose }: Props) {
   const lead = useCrmStore((s) => s.leads.find((l) => l.id === leadId) ?? null);
   const verticals = useCrmStore((s) => s.verticals);
-  const interactions = useCrmStore((s) =>
-    s.interactions.filter((i) => i.leadId === leadId).sort((a, b) => b.date.localeCompare(a.date))
+  // Seleccionar el array crudo y derivar con useMemo: un selector que devuelve
+  // un array nuevo en cada render (filter/sort) provoca renders infinitos en
+  // zustand v5 + React 19 (error #185 "Maximum update depth exceeded").
+  const allInteractions = useCrmStore((s) => s.interactions);
+  const interactions = useMemo(
+    () =>
+      allInteractions
+        .filter((i) => i.leadId === leadId)
+        .sort((a, b) => b.date.localeCompare(a.date)),
+    [allInteractions, leadId]
   );
   const updateLead = useCrmStore((s) => s.updateLead);
   const deleteLead = useCrmStore((s) => s.deleteLead);
