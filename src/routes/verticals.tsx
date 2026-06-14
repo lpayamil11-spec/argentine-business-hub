@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   DndContext,
   closestCenter,
@@ -46,7 +46,11 @@ export const Route = createFileRoute("/verticals")({
 });
 
 function VerticalsPage() {
-  const verticals = useCrmStore((s) => [...s.verticals].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)));
+  const verticalsRaw = useCrmStore((s) => s.verticals);
+  const verticals = useMemo(
+    () => [...verticalsRaw].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
+    [verticalsRaw]
+  );
   const leads = useCrmStore((s) => s.leads);
   const addVertical = useCrmStore((s) => s.addVertical);
   const reorder = useCrmStore((s) => s.reorderVerticals);

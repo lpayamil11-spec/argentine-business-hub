@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { useCrmStore } from "@/store/useCrmStore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatUSD, formatDate, isOverdue, isToday } from "@/lib/format";
@@ -19,9 +20,16 @@ export const Route = createFileRoute("/")({
 });
 
 function Dashboard() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const leads = useCrmStore((s) => s.leads);
   const verticals = useCrmStore((s) => s.verticals);
   const interactions = useCrmStore((s) => s.interactions);
+
+  if (!mounted) {
+    return <div className="space-y-6 max-w-7xl mx-auto"><div><h1 className="text-2xl font-bold">Dashboard</h1><p className="text-sm text-muted-foreground">Cargando…</p></div></div>;
+  }
+
 
   const open = leads.filter((l) => l.status !== "cerrado" && l.status !== "perdido");
   const pipelineValue = open.reduce((s, l) => s + (l.estimatedTicketUSD || 0), 0);
