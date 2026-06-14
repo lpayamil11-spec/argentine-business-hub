@@ -8,7 +8,7 @@
 import type { Interaction, Lead, Vertical } from "@/lib/types";
 import { useCrmStore } from "@/store/useCrmStore";
 
-export const BASE_URL = "http://localhost:3400/api";
+export const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3400/api";
 export const USE_REMOTE = import.meta.env.VITE_USE_REMOTE_API === "true";
 
 async function remote<T>(path: string, init?: RequestInit): Promise<T> {

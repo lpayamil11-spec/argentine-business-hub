@@ -4,10 +4,43 @@ import type { Interaction, Lead, LeadStatus, Vertical } from "@/lib/types";
 import { seedInteractions, seedLeads, seedVerticals } from "@/lib/seed";
 import { uid } from "@/lib/format";
 
+/**
+ * Fuente de datos del CRM.
+ *
+ * Por defecto (modo local) trabaja contra estado en memoria persistido en
+ * localStorage, sembrado con datos demo. Si se define VITE_USE_REMOTE_API=true,
+ * el store hidrata desde la API REST y persiste cada mutación contra el backend
+ * (ver VITE_API_BASE_URL). Las mutaciones siguen siendo optimistas: actualizan
+ * el estado local al instante y sincronizan con el server en segundo plano,
+ * reconciliando el id temporal con el id real que devuelve Mongo.
+ */
+const USE_REMOTE = import.meta.env.VITE_USE_REMOTE_API === "true";
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3400/api";
+
+async function api<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    headers: { "Content-Type": "application/json" },
+    ...init,
+  });
+  if (!res.ok) throw new Error(`API ${res.status} ${path}`);
+  if (res.status === 204) return undefined as T;
+  return res.json();
+}
+
+/** Dispara una llamada remota en segundo plano sin bloquear la UI. */
+function sync(promise: Promise<unknown>, label: string) {
+  promise.catch((e) => console.error(`[crm] ${label} falló:`, e));
+}
+
 interface CrmState {
   verticals: Vertical[];
   leads: Lead[];
   interactions: Interaction[];
+
+  /** true cuando ya se cargaron los datos desde la API (solo modo remoto). */
+  hydrated: boolean;
+  /** Carga inicial desde la API. No-op en modo local o si ya hidrató. */
+  hydrate: () => Promise<void>;
 
   // Verticals
   addVertical: (data: Omit<Vertical, "id" | "createdAt" | "order">) => Vertical;
@@ -42,21 +75,55 @@ export const useCrmStore = create<CrmState>()(
       leads: seedLeads,
       interactions: seedInteractions,
 
+      hydrated: false,
+      hydrate: async () => {
+        if (!USE_REMOTE || get().hydrated) return;
+        try {
+          const [verticals, leads, interactions] = await Promise.all([
+            api<Vertical[]>("/verticals"),
+            api<Lead[]>("/leads"),
+            api<Interaction[]>("/interactions"),
+          ]);
+          set({ verticals, leads, interactions, hydrated: true });
+        } catch (e) {
+          console.error("[crm] hydrate falló, se mantienen los datos locales:", e);
+        }
+      },
+
       addVertical: (data) => {
+        const tempId = uid();
         const v: Vertical = {
-          id: uid(),
+          id: tempId,
           createdAt: new Date().toISOString(),
           order: get().verticals.length,
           ...data,
         };
         set((s) => ({ verticals: [...s.verticals, v] }));
+        if (USE_REMOTE) {
+          sync(
+            api<Vertical>("/verticals", {
+              method: "POST",
+              body: JSON.stringify({ name: v.name, icon: v.icon, color: v.color }),
+            }).then((saved) =>
+              set((s) => ({
+                verticals: s.verticals.map((x) => (x.id === tempId ? saved : x)),
+              }))
+            ),
+            "addVertical"
+          );
+        }
         return v;
       },
-      updateVertical: (id, patch) =>
-        set((s) => ({ verticals: s.verticals.map((v) => (v.id === id ? { ...v, ...patch } : v)) })),
-      deleteVertical: (id) =>
-        set((s) => ({ verticals: s.verticals.filter((v) => v.id !== id) })),
-      reorderVerticals: (ids) =>
+      updateVertical: (id, patch) => {
+        set((s) => ({ verticals: s.verticals.map((v) => (v.id === id ? { ...v, ...patch } : v)) }));
+        if (USE_REMOTE)
+          sync(api(`/verticals/${id}`, { method: "PATCH", body: JSON.stringify(patch) }), "updateVertical");
+      },
+      deleteVertical: (id) => {
+        set((s) => ({ verticals: s.verticals.filter((v) => v.id !== id) }));
+        if (USE_REMOTE) sync(api(`/verticals/${id}`, { method: "DELETE" }), "deleteVertical");
+      },
+      reorderVerticals: (ids) => {
         set((s) => ({
           verticals: ids
             .map((id, i) => {
@@ -64,39 +131,81 @@ export const useCrmStore = create<CrmState>()(
               return v ? { ...v, order: i } : null;
             })
             .filter(Boolean) as Vertical[],
-        })),
+        }));
+        if (USE_REMOTE)
+          ids.forEach((id, i) =>
+            sync(api(`/verticals/${id}`, { method: "PATCH", body: JSON.stringify({ order: i }) }), "reorderVerticals")
+          );
+      },
 
       addLead: (data) => {
         const now = new Date().toISOString();
-        const lead: Lead = { id: uid(), createdAt: now, updatedAt: now, ...data };
+        const tempId = uid();
+        const lead: Lead = { id: tempId, createdAt: now, updatedAt: now, ...data };
         set((s) => ({ leads: [lead, ...s.leads] }));
+        if (USE_REMOTE) {
+          sync(
+            api<Lead>("/leads", { method: "POST", body: JSON.stringify(data) }).then((saved) =>
+              set((s) => ({
+                leads: s.leads.map((l) => (l.id === tempId ? saved : l)),
+                // remapea interacciones creadas contra el id temporal
+                interactions: s.interactions.map((i) =>
+                  i.leadId === tempId ? { ...i, leadId: saved.id } : i
+                ),
+              }))
+            ),
+            "addLead"
+          );
+        }
         return lead;
       },
-      updateLead: (id, patch) =>
+      updateLead: (id, patch) => {
         set((s) => ({
           leads: s.leads.map((l) =>
             l.id === id ? { ...l, ...patch, updatedAt: new Date().toISOString() } : l
           ),
-        })),
-      deleteLead: (id) =>
+        }));
+        if (USE_REMOTE)
+          sync(api(`/leads/${id}`, { method: "PATCH", body: JSON.stringify(patch) }), "updateLead");
+      },
+      deleteLead: (id) => {
         set((s) => ({
           leads: s.leads.filter((l) => l.id !== id),
           interactions: s.interactions.filter((i) => i.leadId !== id),
-        })),
-      moveLead: (id, status) =>
+        }));
+        // El backend hace cascada de interacciones al borrar el lead.
+        if (USE_REMOTE) sync(api(`/leads/${id}`, { method: "DELETE" }), "deleteLead");
+      },
+      moveLead: (id, status) => {
         set((s) => ({
           leads: s.leads.map((l) =>
             l.id === id ? { ...l, status, updatedAt: new Date().toISOString() } : l
           ),
-        })),
+        }));
+        if (USE_REMOTE)
+          sync(api(`/leads/${id}`, { method: "PATCH", body: JSON.stringify({ status }) }), "moveLead");
+      },
 
       addInteraction: (data) => {
-        const it: Interaction = { id: uid(), ...data };
+        const tempId = uid();
+        const it: Interaction = { id: tempId, ...data };
         set((s) => ({ interactions: [it, ...s.interactions] }));
+        if (USE_REMOTE) {
+          sync(
+            api<Interaction>("/interactions", { method: "POST", body: JSON.stringify(data) }).then((saved) =>
+              set((s) => ({
+                interactions: s.interactions.map((x) => (x.id === tempId ? saved : x)),
+              }))
+            ),
+            "addInteraction"
+          );
+        }
         return it;
       },
-      deleteInteraction: (id) =>
-        set((s) => ({ interactions: s.interactions.filter((i) => i.id !== id) })),
+      deleteInteraction: (id) => {
+        set((s) => ({ interactions: s.interactions.filter((i) => i.id !== id) }));
+        if (USE_REMOTE) sync(api(`/interactions/${id}`, { method: "DELETE" }), "deleteInteraction");
+      },
 
       exportData: () => {
         const { verticals, leads, interactions } = get();
@@ -203,12 +312,30 @@ export const useCrmStore = create<CrmState>()(
         }
 
         set({ verticals, leads, interactions });
+        // NOTA: la importación masiva todavía no sincroniza con la API en modo
+        // remoto (los ids son locales). Pendiente: persistir el alta masiva.
         return { addedLeads, addedVerticals };
       },
 
-      resetToSeed: () =>
-        set({ verticals: seedVerticals, leads: seedLeads, interactions: seedInteractions }),
+      resetToSeed: () => {
+        if (USE_REMOTE) {
+          // En remoto no re-sembramos: refrescamos desde el server.
+          set({ hydrated: false });
+          void get().hydrate();
+          return;
+        }
+        set({ verticals: seedVerticals, leads: seedLeads, interactions: seedInteractions });
+      },
     }),
-    { name: "crm-v1" }
+    {
+      name: "crm-v1",
+      // No persistir `hydrated` ni las funciones: así en modo remoto siempre
+      // se vuelve a hidratar desde la API al recargar.
+      partialize: (s) => ({
+        verticals: s.verticals,
+        leads: s.leads,
+        interactions: s.interactions,
+      }),
+    }
   )
 );

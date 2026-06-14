@@ -36,7 +36,7 @@ import {
   type InteractionType,
   type LeadStatus,
 } from "@/lib/types";
-import { formatDateTime, waLink } from "@/lib/format";
+import { dateInputToISO, formatDateTime, waLink } from "@/lib/format";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { VerticalBadge } from "@/components/common/VerticalBadge";
 import { MessageCircle, Phone, Copy, Trash2, Plus } from "lucide-react";
@@ -50,8 +50,16 @@ interface Props {
 export function LeadDrawer({ leadId, onClose }: Props) {
   const lead = useCrmStore((s) => s.leads.find((l) => l.id === leadId) ?? null);
   const verticals = useCrmStore((s) => s.verticals);
-  const interactions = useCrmStore((s) =>
-    s.interactions.filter((i) => i.leadId === leadId).sort((a, b) => b.date.localeCompare(a.date))
+  // Seleccionar el array crudo y derivar con useMemo: un selector que devuelve
+  // un array nuevo en cada render (filter/sort) provoca renders infinitos en
+  // zustand v5 + React 19 (error #185 "Maximum update depth exceeded").
+  const allInteractions = useCrmStore((s) => s.interactions);
+  const interactions = useMemo(
+    () =>
+      allInteractions
+        .filter((i) => i.leadId === leadId)
+        .sort((a, b) => b.date.localeCompare(a.date)),
+    [allInteractions, leadId]
   );
   const updateLead = useCrmStore((s) => s.updateLead);
   const deleteLead = useCrmStore((s) => s.deleteLead);
@@ -78,7 +86,7 @@ export function LeadDrawer({ leadId, onClose }: Props) {
     addInteraction({
       leadId: lead.id,
       type: newInt.type,
-      date: new Date(newInt.date).toISOString(),
+      date: dateInputToISO(newInt.date),
       notes: newInt.notes,
     });
     setNewInt({ type: "call", date: new Date().toISOString().slice(0, 10), notes: "" });
@@ -190,7 +198,7 @@ export function LeadDrawer({ leadId, onClose }: Props) {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Próxima acción (fecha)">
-              <Input type="date" value={lead.nextActionDate ? lead.nextActionDate.slice(0, 10) : ""} onChange={(e) => onField("nextActionDate", e.target.value ? new Date(e.target.value).toISOString() : null)} />
+              <Input type="date" value={lead.nextActionDate ? lead.nextActionDate.slice(0, 10) : ""} onChange={(e) => onField("nextActionDate", e.target.value ? dateInputToISO(e.target.value) : null)} />
             </Field>
             <Field label="Próxima acción (descripción)">
               <Input value={lead.nextActionDescription} onChange={(e) => onField("nextActionDescription", e.target.value)} />

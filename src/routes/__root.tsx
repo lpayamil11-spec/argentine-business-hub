@@ -15,6 +15,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { AddLeadDialog } from "@/components/leads/AddLeadDialog";
 import { Toaster } from "@/components/ui/sonner";
+import { useCrmStore } from "@/store/useCrmStore";
 
 function NotFoundComponent() {
   return (
@@ -113,6 +114,12 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const hydrate = useCrmStore((s) => s.hydrate);
+
+  // Carga inicial desde la API (no-op en modo local).
+  useEffect(() => {
+    void hydrate();
+  }, [hydrate]);
 
   return (
     <QueryClientProvider client={queryClient}>
