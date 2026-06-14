@@ -4,10 +4,13 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
+  useNavigate,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { useAuth } from "@/store/useAuth";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -114,12 +117,54 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const navigate = useNavigate();
+  const token = useAuth((s) => s.token);
+  const loadMe = useAuth((s) => s.loadMe);
   const hydrate = useCrmStore((s) => s.hydrate);
 
-  // Carga inicial desde la API (no-op en modo local).
+  // Evita mismatch SSR/cliente: localStorage (token) solo existe en el browser.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   useEffect(() => {
+    if (!mounted) return;
+    if (!token) {
+      if (pathname !== "/login") navigate({ to: "/login" });
+      return;
+    }
+    // Sesión activa: validar token y cargar datos desde la API.
+    void loadMe();
     void hydrate();
-  }, [hydrate]);
+  }, [mounted, token, pathname, navigate, loadMe, hydrate]);
+
+  // Primer render (SSR + hidratación): pantalla neutra hasta conocer la sesión.
+  if (!mounted) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <div className="min-h-screen bg-background" />
+      </QueryClientProvider>
+    );
+  }
+
+  // Login: se renderiza sin el shell del CRM (sidebar/header).
+  if (pathname === "/login") {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <Outlet />
+        <Toaster position="top-right" />
+      </QueryClientProvider>
+    );
+  }
+
+  // Sin sesión: el efecto ya redirige a /login; no renderizamos el CRM.
+  if (!token) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <div className="min-h-screen bg-background" />
+      </QueryClientProvider>
+    );
+  }
 
   return (
     <QueryClientProvider client={queryClient}>

@@ -70,3 +70,20 @@ export interface Interaction {
   type: InteractionType;
   notes: string;
 }
+
+export type Role = "admin" | "vendedor";
+
+export const ROLE_LABELS: Record<Role, string> = {
+  admin: "Administrador",
+  vendedor: "Vendedor",
+};
+
+export interface User {
+  id: string;
+  username: string;
+  name: string;
+  role: Role;
+  active: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}

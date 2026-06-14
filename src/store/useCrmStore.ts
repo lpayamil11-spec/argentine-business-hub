@@ -3,6 +3,8 @@ import { persist } from "zustand/middleware";
 import type { Interaction, Lead, LeadStatus, Vertical } from "@/lib/types";
 import { seedInteractions, seedLeads, seedVerticals } from "@/lib/seed";
 import { uid } from "@/lib/format";
+import { apiFetch as api } from "@/lib/apiClient";
+import { getToken } from "@/store/useAuth";
 
 /**
  * Fuente de datos del CRM.
@@ -15,17 +17,9 @@ import { uid } from "@/lib/format";
  * reconciliando el id temporal con el id real que devuelve Mongo.
  */
 const USE_REMOTE = import.meta.env.VITE_USE_REMOTE_API === "true";
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3400/api";
 
-async function api<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    headers: { "Content-Type": "application/json" },
-    ...init,
-  });
-  if (!res.ok) throw new Error(`API ${res.status} ${path}`);
-  if (res.status === 204) return undefined as T;
-  return res.json();
-}
+// El cliente `api` (apiFetch) adjunta el Bearer token y maneja el 401 (cierra
+// sesión + redirige a /login).
 
 /** Dispara una llamada remota en segundo plano sin bloquear la UI. */
 function sync(promise: Promise<unknown>, label: string) {
@@ -77,7 +71,7 @@ export const useCrmStore = create<CrmState>()(
 
       hydrated: false,
       hydrate: async () => {
-        if (!USE_REMOTE || get().hydrated) return;
+        if (!USE_REMOTE || get().hydrated || !getToken()) return;
         try {
           const [verticals, leads, interactions] = await Promise.all([
             api<Vertical[]>("/verticals"),
